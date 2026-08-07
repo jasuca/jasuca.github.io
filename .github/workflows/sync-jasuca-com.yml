@@ -1,0 +1,78 @@
+name: Sync jasuca.com
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: sync-jasuca-com
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out GitHub Pages repository
+        uses: actions/checkout@v5
+        with:
+          path: site
+
+      - name: Check out jasuca.com source
+        uses: actions/checkout@v5
+        with:
+          repository: jasuca/jasuca-com
+          ref: main
+          path: source
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: source/.node-version
+
+      - name: Build jasuca.com
+        working-directory: source
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm run ci
+
+      - name: Replace mirrored static files
+        run: |
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.gitignore' \
+            --exclude='README.md' \
+            --exclude='.DS_Store' \
+            source/dist/ site/
+
+      - name: Commit and publish changes
+        id: publish
+        working-directory: site
+        run: |
+          if test -z "$(git status --porcelain)"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          source_sha="$(git -C ../source rev-parse --short=12 HEAD)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "Sync jasuca.com static build (${source_sha})"
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Request GitHub Pages rebuild
+        if: steps.publish.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh api --method POST
+          -H "X-GitHub-Api-Version: 2022-11-28"
+          "repos/${GITHUB_REPOSITORY}/pages/builds"
