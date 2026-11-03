@@ -26,11 +26,14 @@ jobs:
           repository: jasuca/jasuca-com
           ref: main
           path: source
+          ssh-key: ${{ secrets.JASUCA_SOURCE_DEPLOY_KEY }}
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
           node-version-file: source/.node-version
+          package-manager-cache: false
 
       - name: Build jasuca.com
         working-directory: source
