@@ -35,10 +35,14 @@ jobs:
           node-version-file: source/.node-version
           package-manager-cache: false
 
+      - name: Install pinned pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: source/package.json
+
       - name: Build jasuca.com
         working-directory: source
         run: |
-          corepack enable
           pnpm install --frozen-lockfile
           pnpm run ci
 
