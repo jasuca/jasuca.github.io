@@ -3,7 +3,15 @@
 This repository mirrors the production build of [jasuca.com](https://jasuca.com), whose
 source lives in [jasuca/jasuca-com](https://github.com/jasuca/jasuca-com).
 
-Run the `Sync jasuca.com` workflow on demand from the Actions tab to rebuild the source,
+Pushes to `main` in the source repository automatically publish the CI-verified
+build here after checks pass. The source repository holds the
+`JASUCA_MIRROR_DEPLOY_KEY` Actions secret; its public key is registered here as the
+write-enabled deploy key `jasuca.com automatic mirror publishing`. SSH pushes
+trigger the normal GitHub Pages build. Superseded source pushes are skipped.
+The `.source-commit` file identifies the source SHA used for the mirrored build;
+reruns of the same source and build do not create commits.
+
+For a manual rebuild, run the `Sync jasuca.com` workflow from the Actions tab to rebuild the source,
 commit changed static files here, and explicitly request a GitHub Pages rebuild. Commits
 made with the workflow token do not trigger a Pages build on their own.
 
